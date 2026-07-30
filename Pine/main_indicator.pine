@@ -24,64 +24,66 @@ debugMode = input.bool(false, "Debug Mode", group=groupGeneral)
 // MARKET MEMORY
 //====================================================
 //====================================================
-//====================================================
-// STRUCTURE ENGINE
+// MARKET STRUCTURE ENGINE
 //====================================================
 
-// Trend
-enum Trend
+// Trend State
+enum TrendState
+    Neutral
     Bullish
     Bearish
-    Neutral
 
-var Trend marketTrend = Trend.Neutral
+var TrendState trendState = TrendState.Neutral
 
-// Swing Types
-enum SwingType
+enum SwingClass
     None
     HH
     HL
     LH
     LL
 
-// Last confirmed swings
 var float lastMajorHigh = na
 var float previousMajorHigh = na
 
 var float lastMajorLow = na
 var float previousMajorLow = na
 
-// Swing classification
-var SwingType lastHighType = SwingType.None
-var SwingType lastLowType = SwingType.None
+var SwingClass currentHighClass = SwingClass.None
+var SwingClass currentLowClass = SwingClass.None
 
-// Swing bar positions
 var int lastMajorHighBar = na
 var int lastMajorLowBar = na
 
-// Swing Classification
-var string lastHighType = ""
-var string lastLowType  = ""
+//====================================================
+// BOS / CHoCH MEMORY
+//====================================================
 
-// Trend State
-var string trend = "Neutral"
+var float lastBullishBOS = na
+var float lastBearishBOS = na
 
-// Current Swings
-var float lastMajorHigh = na
-var float previousMajorHigh = na
+var bool bullishBOS = false
+var bool bearishBOS = false
 
-var float lastMajorLow = na
-var float previousMajorLow = na
+var bool bullishCHoCH = false
+var bool bearishCHoCH = false
 
-// Swing Bar Locations
-var int lastMajorHighBar = na
-var int lastMajorLowBar = na
+//====================================================
 // Major swings
 var majorHighPrices = array.new_float()
 var majorHighBars   = array.new_int()
 
 var majorLowPrices  = array.new_float()
 var majorLowBars    = array.new_int()
+
+//====================================================
+// TREND ENGINE
+//====================================================
+
+if currentHighClass == SwingClass.HH and currentLowClass == SwingClass.HL
+    trendState := TrendState.Bullish
+
+if currentHighClass == SwingClass.LH and currentLowClass == SwingClass.LL
+    trendState := TrendState.Bearish
 
 // Minor swings
 var minorHighPrices = array.new_float()
@@ -101,40 +103,61 @@ majorPL = ta.pivotlow(low, majorLen, majorLen)
 minorPH = ta.pivothigh(high, minorLen, minorLen)
 minorPL = ta.pivotlow(low, minorLen, minorLen)
 
+// Reset structure events
+bullishBOS := false
+bearishBOS := false
+bullishCHoCH := false
+bearishCHoCH := false
+
 // Store confirmed pivots
+// Store confirmed Major High
+
 if not na(majorPH)
+    bool isNewHigh = array.size(majorHighPrices) == 0 or array.get(majorHighPrices, array.size(majorHighPrices) - 1) != majorPH
 
-    if array.size(majorHighPrices) == 0 or array.get(majorHighPrices, array.size(majorHighPrices)-1) != majorPH
-
+    if isNewHigh
         previousMajorHigh := lastMajorHigh
         lastMajorHigh := majorPH
+        lastMajorHighBar := bar_index - majorLen
 
-        lastMajorHighBar := bar_index-majorLen
+        if not na(previousMajorHigh)
+            currentHighClass := lastMajorHigh > previousMajorHigh ? SwingClass.HH : SwingClass.LH
 
         array.push(majorHighPrices, majorPH)
-        array.push(majorHighBars, bar_index-majorLen)
+        array.push(majorHighBars, bar_index - majorLen)
 
+//====================================================
+// BULLISH BOS
+//====================================================
+
+if not na(lastMajorHigh)
+    if close > lastMajorHigh and close[1] <= lastMajorHigh
+        bullishBOS := true
+        lastBullishBOS := lastMajorHigh
+
+// Store confirmed Major Low
 if not na(majorPL)
+    bool isNewLow = array.size(majorLowPrices) == 0 or array.get(majorLowPrices, array.size(majorLowPrices) - 1) != majorPL
 
-    if array.size(majorLowPrices) == 0 or array.get(majorLowPrices, array.size(majorLowPrices)-1) != majorPL
-
+    if isNewLow
         previousMajorLow := lastMajorLow
         lastMajorLow := majorPL
+        lastMajorLowBar := bar_index - majorLen
 
-        lastMajorLowBar := bar_index-majorLen
+        if not na(previousMajorLow)
+            currentLowClass := lastMajorLow > previousMajorLow ? SwingClass.HL : SwingClass.LL
 
         array.push(majorLowPrices, majorPL)
-        array.push(majorLowBars, bar_index-majorLen)
+        array.push(majorLowBars, bar_index - majorLen)
 
-if not na(minorPH)
-    if array.size(minorHighPrices) == 0 or array.get(minorHighPrices, array.size(minorHighPrices)-1) != minorPH
-        array.push(minorHighPrices, minorPH)
-        array.push(minorHighBars, bar_index - minorLen)
+//====================================================
+// BEARISH BOS
+//====================================================
 
-if not na(minorPL)
-    if array.size(minorLowPrices) == 0 or array.get(minorLowPrices, array.size(minorLowPrices)-1) != minorPL
-        array.push(minorLowPrices, minorPL)
-        array.push(minorLowBars, bar_index - minorLen)
+if not na(lastMajorLow)
+    if close < lastMajorLow and close[1] >= lastMajorLow
+        bearishBOS := true
+        lastBearishBOS := lastMajorLow
 
 //====================================================
 // DRAWING
@@ -177,20 +200,70 @@ plotshape(
      color=color.aqua)
 
 //====================================================
+// MARKET STRUCTURE LABELS
+//====================================================
+
+if not na(majorPH) and currentHighClass != SwingClass.None
+
+    label.new(
+         bar_index - majorLen,
+         majorPH,
+         str.tostring(currentHighClass),
+         style=label.style_label_down,
+         color=currentHighClass == SwingClass.HH ? color.green : color.red,
+         textcolor=color.white)
+
+if not na(majorPL) and currentLowClass != SwingClass.None
+
+    label.new(
+         bar_index - majorLen,
+         majorPL,
+         str.tostring(currentLowClass),
+         style=label.style_label_up,
+         color=currentLowClass == SwingClass.HL ? color.green : color.red,
+         textcolor=color.white)
+
+//====================================================
+// BOS LABELS
+//====================================================
+
+if bullishBOS
+    label.new(
+         bar_index,
+         high,
+         "BOS",
+         style=label.style_label_down,
+         color=color.green,
+         textcolor=color.white)
+
+if bearishBOS
+    label.new(
+         bar_index,
+         low,
+         "BOS",
+         style=label.style_label_up,
+         color=color.red,
+         textcolor=color.white)
+
+//====================================================
 // DEBUG
 //====================================================
 
 if debugMode and barstate.islast
+    string trendText =
+         trendState == TrendState.Bullish ? "Bullish" :
+         trendState == TrendState.Bearish ? "Bearish" :
+         "Neutral"
 
     label.new(
          bar_index,
          high,
          "SMC PRO AI " + VERSION +
-         "\nTrend : " + trend +
-         "\nLast High : " + str.tostring(lastMajorHigh) +
-         "\nPrev High : " + str.tostring(previousMajorHigh) +
-         "\nLast Low : " + str.tostring(lastMajorLow) +
-         "\nPrev Low : " + str.tostring(previousMajorLow),
+         "\nTrend: " + trendText +
+         "\nLast High: " + str.tostring(lastMajorHigh) +
+         "\nPrev High: " + str.tostring(previousMajorHigh) +
+         "\nLast Low: " + str.tostring(lastMajorLow) +
+         "\nPrev Low: " + str.tostring(previousMajorLow),
          style=label.style_label_left,
          color=color.black,
          textcolor=color.white)

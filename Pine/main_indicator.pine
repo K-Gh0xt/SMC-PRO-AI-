@@ -1,0 +1,128 @@
+//@version=6
+indicator("SMC PRO AI v0.1.1", overlay=true, max_labels_count=500, max_lines_count=500)
+
+//====================================================
+// VERSION
+//====================================================
+const string VERSION = "0.1.1"
+
+//====================================================
+// INPUTS
+//====================================================
+groupGeneral = "General"
+groupPivot = "Pivot Engine"
+
+showMajor = input.bool(true, "Show Major Pivots", group=groupPivot)
+showMinor = input.bool(true, "Show Minor Pivots", group=groupPivot)
+
+majorLen = input.int(10, "Major Swing Length", minval=2, maxval=50, group=groupPivot)
+minorLen = input.int(3, "Minor Swing Length", minval=2, maxval=20, group=groupPivot)
+
+debugMode = input.bool(false, "Debug Mode", group=groupGeneral)
+
+//====================================================
+// MARKET MEMORY
+//====================================================
+
+// Major swings
+var majorHighPrices = array.new_float()
+var majorHighBars   = array.new_int()
+
+var majorLowPrices  = array.new_float()
+var majorLowBars    = array.new_int()
+
+// Minor swings
+var minorHighPrices = array.new_float()
+var minorHighBars   = array.new_int()
+
+var minorLowPrices  = array.new_float()
+var minorLowBars    = array.new_int()
+
+//====================================================
+// PIVOT ENGINE
+//====================================================
+
+// Detect confirmed pivots
+majorPH = ta.pivothigh(high, majorLen, majorLen)
+majorPL = ta.pivotlow(low, majorLen, majorLen)
+
+minorPH = ta.pivothigh(high, minorLen, minorLen)
+minorPL = ta.pivotlow(low, minorLen, minorLen)
+
+// Store confirmed pivots
+if not na(majorPH)
+    if array.size(majorHighPrices) == 0 or array.get(majorHighPrices, array.size(majorHighPrices)-1) != majorPH
+        array.push(majorHighPrices, majorPH)
+        array.push(majorHighBars, bar_index - majorLen)
+
+if not na(majorPL)
+    if array.size(majorLowPrices) == 0 or array.get(majorLowPrices, array.size(majorLowPrices)-1) != majorPL
+        array.push(majorLowPrices, majorPL)
+        array.push(majorLowBars, bar_index - majorLen)
+
+if not na(minorPH)
+    if array.size(minorHighPrices) == 0 or array.get(minorHighPrices, array.size(minorHighPrices)-1) != minorPH
+        array.push(minorHighPrices, minorPH)
+        array.push(minorHighBars, bar_index - minorLen)
+
+if not na(minorPL)
+    if array.size(minorLowPrices) == 0 or array.get(minorLowPrices, array.size(minorLowPrices)-1) != minorPL
+        array.push(minorLowPrices, minorPL)
+        array.push(minorLowBars, bar_index - minorLen)
+
+//====================================================
+// DRAWING
+//====================================================
+
+plotshape(
+     showMajor and not na(majorPH),
+     title="Major High",
+     style=shape.triangledown,
+     location=location.abovebar,
+     offset=-majorLen,
+     size=size.small,
+     color=color.red)
+
+plotshape(
+     showMajor and not na(majorPL),
+     title="Major Low",
+     style=shape.triangleup,
+     location=location.belowbar,
+     offset=-majorLen,
+     size=size.small,
+     color=color.lime)
+
+plotshape(
+     showMinor and not na(minorPH),
+     title="Minor High",
+     style=shape.circle,
+     location=location.abovebar,
+     offset=-minorLen,
+     size=size.tiny,
+     color=color.orange)
+
+plotshape(
+     showMinor and not na(minorPL),
+     title="Minor Low",
+     style=shape.circle,
+     location=location.belowbar,
+     offset=-minorLen,
+     size=size.tiny,
+     color=color.aqua)
+
+//====================================================
+// DEBUG
+//====================================================
+
+if debugMode and barstate.islast
+    label.new(
+         bar_index,
+         high,
+         "SMC PRO AI " + VERSION +
+         "\nMajor Highs: " + str.tostring(array.size(majorHighPrices)) +
+         "\nMajor Lows : " + str.tostring(array.size(majorLowPrices)) +
+         "\nMinor Highs: " + str.tostring(array.size(minorHighPrices)) +
+         "\nMinor Lows : " + str.tostring(array.size(minorLowPrices)),
+         style=label.style_label_left,
+         color=color.black,
+         textcolor=color.white)

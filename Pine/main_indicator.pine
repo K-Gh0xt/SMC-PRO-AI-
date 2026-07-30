@@ -23,7 +23,59 @@ debugMode = input.bool(false, "Debug Mode", group=groupGeneral)
 //====================================================
 // MARKET MEMORY
 //====================================================
+//====================================================
+//====================================================
+// STRUCTURE ENGINE
+//====================================================
 
+// Trend
+enum Trend
+    Bullish
+    Bearish
+    Neutral
+
+var Trend marketTrend = Trend.Neutral
+
+// Swing Types
+enum SwingType
+    None
+    HH
+    HL
+    LH
+    LL
+
+// Last confirmed swings
+var float lastMajorHigh = na
+var float previousMajorHigh = na
+
+var float lastMajorLow = na
+var float previousMajorLow = na
+
+// Swing classification
+var SwingType lastHighType = SwingType.None
+var SwingType lastLowType = SwingType.None
+
+// Swing bar positions
+var int lastMajorHighBar = na
+var int lastMajorLowBar = na
+
+// Swing Classification
+var string lastHighType = ""
+var string lastLowType  = ""
+
+// Trend State
+var string trend = "Neutral"
+
+// Current Swings
+var float lastMajorHigh = na
+var float previousMajorHigh = na
+
+var float lastMajorLow = na
+var float previousMajorLow = na
+
+// Swing Bar Locations
+var int lastMajorHighBar = na
+var int lastMajorLowBar = na
 // Major swings
 var majorHighPrices = array.new_float()
 var majorHighBars   = array.new_int()
@@ -51,14 +103,28 @@ minorPL = ta.pivotlow(low, minorLen, minorLen)
 
 // Store confirmed pivots
 if not na(majorPH)
+
     if array.size(majorHighPrices) == 0 or array.get(majorHighPrices, array.size(majorHighPrices)-1) != majorPH
+
+        previousMajorHigh := lastMajorHigh
+        lastMajorHigh := majorPH
+
+        lastMajorHighBar := bar_index-majorLen
+
         array.push(majorHighPrices, majorPH)
-        array.push(majorHighBars, bar_index - majorLen)
+        array.push(majorHighBars, bar_index-majorLen)
 
 if not na(majorPL)
+
     if array.size(majorLowPrices) == 0 or array.get(majorLowPrices, array.size(majorLowPrices)-1) != majorPL
+
+        previousMajorLow := lastMajorLow
+        lastMajorLow := majorPL
+
+        lastMajorLowBar := bar_index-majorLen
+
         array.push(majorLowPrices, majorPL)
-        array.push(majorLowBars, bar_index - majorLen)
+        array.push(majorLowBars, bar_index-majorLen)
 
 if not na(minorPH)
     if array.size(minorHighPrices) == 0 or array.get(minorHighPrices, array.size(minorHighPrices)-1) != minorPH
@@ -115,14 +181,16 @@ plotshape(
 //====================================================
 
 if debugMode and barstate.islast
+
     label.new(
          bar_index,
          high,
          "SMC PRO AI " + VERSION +
-         "\nMajor Highs: " + str.tostring(array.size(majorHighPrices)) +
-         "\nMajor Lows : " + str.tostring(array.size(majorLowPrices)) +
-         "\nMinor Highs: " + str.tostring(array.size(minorHighPrices)) +
-         "\nMinor Lows : " + str.tostring(array.size(minorLowPrices)),
+         "\nTrend : " + trend +
+         "\nLast High : " + str.tostring(lastMajorHigh) +
+         "\nPrev High : " + str.tostring(previousMajorHigh) +
+         "\nLast Low : " + str.tostring(lastMajorLow) +
+         "\nPrev Low : " + str.tostring(previousMajorLow),
          style=label.style_label_left,
          color=color.black,
          textcolor=color.white)

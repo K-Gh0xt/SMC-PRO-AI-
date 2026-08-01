@@ -98,6 +98,30 @@ var bool bearishOBMemory = false
 var bool bullishFVGMemory = false
 var bool bearishFVGMemory = false
 //====================================================
+// INSTITUTIONAL EVENT FLAGS
+//====================================================
+
+var bool bullishBOSEvent = false
+var bool bearishBOSEvent = false
+
+var bool bullishCHoCHEvent = false
+var bool bearishCHoCHEvent = false
+
+var bool bullishLiquidityEvent = false
+var bool bearishLiquidityEvent = false
+
+var bool bullishOBTouchEvent = false
+var bool bearishOBTouchEvent = false
+
+var bool bullishFVGEvent = false
+var bool bearishFVGEvent = false
+//====================================================
+// INSTITUTIONAL EVENT TYPE
+//====================================================
+
+var string lastInstitutionalEvent = "NONE"
+
+//====================================================
 // LIQUIDITY SWEEP MEMORY
 //====================================================
 
@@ -471,6 +495,25 @@ executionHigh := na
 executionLow := na
 executionClose := na
 //====================================================
+// EVENT RESET ENGINE
+//====================================================
+
+bullishBOSEvent := false
+bearishBOSEvent := false
+
+bullishCHoCHEvent := false
+bearishCHoCHEvent := false
+
+bullishLiquidityEvent := false
+bearishLiquidityEvent := false
+
+bullishOBTouchEvent := false
+bearishOBTouchEvent := false
+
+bullishFVGEvent := false
+bearishFVGEvent := false
+
+//====================================================
 // H4 PRICE FEED
 //====================================================
 
@@ -487,6 +530,18 @@ h4SwingLow  = ta.lowest(h4Low, majorLen)
 
 h4BullishBOS = h4Close > h4SwingHigh[1]
 h4BearishBOS = h4Close < h4SwingLow[1]
+//====================================================
+// H4 PIVOT MEMORY
+//====================================================
+
+var float lastH4SwingHigh = na
+var float lastH4SwingLow  = na
+
+if h4High == h4SwingHigh
+    lastH4SwingHigh := h4High
+
+if h4Low == h4SwingLow
+    lastH4SwingLow := h4Low
 
 marketQualified := false
 
@@ -569,6 +624,8 @@ if not na(protectedHigh)
         else
             bullishBOS := true
             bullishBOSMemory := true
+            bullishBOSEvent := true
+            lastInstitutionalEvent := "BULLISH_BOS"
             lastBullishBOS := protectedHigh
 
         marketState := MarketState.Bullish
@@ -655,6 +712,8 @@ if close < protectedLow and close[1] >= protectedLow
     else
         bearishBOS := true
         bearishBOSMemory := true
+        bearishBOSEvent := true
+        lastInstitutionalEvent := "BEARISH_BOS"
         lastBearishBOS := protectedLow
 
     marketState := MarketState.Bearish

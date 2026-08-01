@@ -20,9 +20,24 @@ minorLen = input.int(3, "Minor Swing Length", minval=2, maxval=20, group=groupPi
 
 debugMode = input.bool(false, "Debug Mode", group=groupGeneral)
 
+entryMode = input.string(
+    "Aggressive",
+    "Entry Mode",
+    options = ["Aggressive", "Conservative"])
+showDashboard = input.bool(true, "Show Institutional Dashboard")
+enableAlerts = input.bool(true, "Enable Trading Alerts")
 //====================================================
 // MARKET MEMORY
 //====================================================
+//====================================================
+// DASHBOARD
+//====================================================
+
+var table dashboard = table.new(
+     position.top_right,
+     2,
+     50,
+     border_width = 1)
 //====================================================
 // MARKET STRUCTURE ENGINE
 //====================================================
@@ -58,6 +73,7 @@ var int lastMajorLowBar = na
 // BOS / CHoCH MEMORY
 //====================================================
 
+
 var float lastBullishBOS = na
 var float lastBearishBOS = na
 
@@ -67,7 +83,264 @@ var bool bearishBOS = false
 var bool bullishCHoCH = false
 var bool bearishCHoCH = false
 
+var bool bullishBOSMemory = false
+var bool bearishBOSMemory = false
+
+var bool bullishCHoCHMemory = false
+var bool bearishCHoCHMemory = false
+
+var bool bullishSweepMemory = false
+var bool bearishSweepMemory = false
+
+var bool bullishOBMemory = false
+var bool bearishOBMemory = false
+
+var bool bullishFVGMemory = false
+var bool bearishFVGMemory = false
 //====================================================
+// LIQUIDITY SWEEP MEMORY
+//====================================================
+
+var bool bullishSweep = false
+var bool bearishSweep = false
+
+var float lastBullishSweep = na
+var float lastBearishSweep = na
+//====================================================
+//====================================================
+// PROTECTED STRUCTURE ENGINE
+//====================================================
+//====================================================
+// ORDER BLOCK MEMORY
+//====================================================
+
+var float bullishOBHigh = na
+var float bullishOBLow  = na
+
+var float bearishOBHigh = na
+var float bearishOBLow  = na
+
+var int bullishOBBar = na
+var int bearishOBBar = na
+//====================================================
+// FAIR VALUE GAP MEMORY
+//====================================================
+//====================================================
+// PREMIUM / DISCOUNT MEMORY
+//====================================================
+
+var float equilibrium = na
+
+var bool inPremium = false
+var bool inDiscount = false
+var bool bullishFVG = false
+var bool bearishFVG = false
+
+//====================================================
+// MITIGATION MEMORY
+//====================================================
+
+var bool bullishOBMitigated = false
+var bool bearishOBMitigated = false
+
+var bool bullishOBFresh = false
+var bool bearishOBFresh = false
+
+var float bullishFVGTop = na
+var float bullishFVGBottom = na
+
+var float bearishFVGTop = na
+var float bearishFVGBottom = na
+// Candidate Structure
+var float candidateHigh = na
+var int candidateHighBar = na
+
+var float candidateLow = na
+var int candidateLowBar = na
+
+//====================================================
+// MULTI TIMEFRAME MEMORY
+//====================================================
+
+var bool dailyBiasBullish = false
+var bool dailyBiasBearish = false
+
+var bool h4BiasBullish = false
+var bool h4BiasBearish = false
+
+var bool mtfAlignedBullish = false
+var bool mtfAlignedBearish = false
+
+//====================================================
+// DAILY NARRATIVE
+//====================================================
+
+var int dailyStructureScore = 0
+var int dailyLiquidityScore = 0
+var int dailyOrderBlockScore = 0
+var int dailyFVGScore = 0
+var int dailyPremiumDiscountScore = 0
+var int dailyMitigationScore = 0
+
+var int dailyNarrativeScore = 0
+
+var bool dailyNarrativeBullish = false
+var bool dailyNarrativeBearish = false
+
+//====================================================
+// H4 NARRATIVE
+//====================================================
+
+var int h4StructureScore = 0
+var int h4LiquidityScore = 0
+var int h4OrderBlockScore = 0
+var int h4FVGScore = 0
+var int h4PremiumDiscountScore = 0
+var int h4MitigationScore = 0
+
+var int h4NarrativeScore = 0
+
+var bool h4NarrativeBullish = false
+var bool h4NarrativeBearish = false
+
+// EXECUTION NARRATIVE (15M)
+//====================================================
+
+var int executionStructureScore = 0
+var int executionLiquidityScore = 0
+var int executionOrderBlockScore = 0
+var int executionFVGScore = 0
+var int executionPremiumDiscountScore = 0
+var int executionMitigationScore = 0
+
+var int executionNarrativeScore = 0
+
+var bool executionNarrativeBullish = false
+var bool executionNarrativeBearish = false
+//====================================================
+// MTF ALIGNMENT
+//====================================================
+
+var bool mtfBullishAligned = false
+var bool mtfBearishAligned = false
+
+var int alignmentScore = 0
+//====================================================
+// CONFIDENCE MANAGER
+//====================================================
+
+var int confidenceScore = 0
+int bosScore = 0
+int liquidityScore = 0
+int orderBlockScore = 0
+int fvgScore = 0
+int premiumDiscountScore = 0
+int mitigationScore = 0
+
+var int structureWeight = 15
+var int bosWeight = 15
+var int chochWeight = 10
+var int liquidityWeight = 15
+var int orderBlockWeight = 15
+var int fvgWeight = 10
+var int premiumWeight = 5
+var int mitigationWeight = 5
+var int narrativeWeight = 5
+var int alignmentWeight = 5
+
+//====================================================
+// DECISION ENGINE
+//====================================================
+
+var bool marketQualified = false
+
+enum TradeDirection
+    None
+    Buy
+    Sell
+
+var TradeDirection tradeDirection = TradeDirection.None
+
+var int aggressiveConfidenceThreshold = 75
+var int conservativeConfidenceThreshold = 90
+
+//====================================================
+// ENTRY QUALIFICATION
+//====================================================
+
+var bool aggressiveEntry = false
+var bool conservativeEntry = false
+
+var bool hasLiquidityConfirmation = false
+var bool hasStructureConfirmation = false
+var bool hasInstitutionalConfirmation = false
+
+//====================================================
+// SIGNAL LIFECYCLE
+//====================================================
+
+var bool buySetupActive = false
+var bool sellSetupActive = false
+
+var bool buySignal = false
+var bool sellSignal = false
+
+//====================================================
+// SIGNAL GENERATION
+//====================================================
+
+
+//====================================================
+// MTF DATA ENGINE
+//====================================================
+
+// Daily
+var float dailyHigh = na
+var float dailyLow = na
+var float dailyClose = na
+
+// H4
+var float h4High = na
+var float h4Low = na
+var float h4Close = na
+
+// Execution
+// Execution
+var float executionOpen = na
+var float executionHigh = na
+var float executionLow = na
+var float executionClose = na
+//====================================================
+// NARRATIVE SCORING WEIGHTS
+//====================================================
+
+const int SCORE_STRUCTURE = 20
+const int SCORE_BOS = 20
+const int SCORE_LIQUIDITY = 15
+const int SCORE_ORDERBLOCK = 15
+const int SCORE_FVG = 10
+const int SCORE_PREMIUM = 10
+const int SCORE_MITIGATION = 10
+// Protected Structure
+var float protectedHigh = na
+var int protectedHighBar = na
+
+var float protectedLow = na
+var int protectedLowBar = na
+
+// Visualization
+var line protectedHighLine = na
+var line protectedLowLine = na
+//====================================================
+// MARKET STATE
+//====================================================
+
+enum MarketState
+    Neutral
+    Bullish
+    Bearish
+
+var MarketState marketState = MarketState.Neutral
 // Major swings
 var majorHighPrices = array.new_float()
 var majorHighBars   = array.new_int()
@@ -81,7 +354,12 @@ var majorLowBars    = array.new_int()
 
 if currentHighClass == SwingClass.HH and currentLowClass == SwingClass.HL
     trendState := TrendState.Bullish
+//====================================================
+// CHOCH MEMORY
+//====================================================
 
+var float lastBullishCHoCH = na
+var float lastBearishCHoCH = na
 if currentHighClass == SwingClass.LH and currentLowClass == SwingClass.LL
     trendState := TrendState.Bearish
 
@@ -91,6 +369,22 @@ var minorHighBars   = array.new_int()
 
 var minorLowPrices  = array.new_float()
 var minorLowBars    = array.new_int()
+
+//====================================================
+// MTF DATA COLLECTION
+//====================================================
+
+dailyHigh := request.security(syminfo.tickerid, "D", high)
+dailyLow := request.security(syminfo.tickerid, "D", low)
+dailyClose := request.security(syminfo.tickerid, "D", close)
+
+h4High := request.security(syminfo.tickerid, "240", high)
+h4Low := request.security(syminfo.tickerid, "240", low)
+h4Close := request.security(syminfo.tickerid, "240", close)
+
+executionHigh := high
+executionLow := low
+executionClose := close
 
 //====================================================
 // PIVOT ENGINE
@@ -108,6 +402,115 @@ bullishBOS := false
 bearishBOS := false
 bullishCHoCH := false
 bearishCHoCH := false
+bullishSweep := false
+bearishSweep := false
+bullishFVG := false
+bearishFVG := false
+inPremium := false
+inDiscount := false
+dailyBiasBullish := false
+dailyBiasBearish := false
+
+h4BiasBullish := false
+h4BiasBearish := false
+
+mtfAlignedBullish := false
+mtfAlignedBearish := false
+dailyStructureScore := 0
+dailyLiquidityScore := 0
+dailyOrderBlockScore := 0
+dailyFVGScore := 0
+dailyPremiumDiscountScore := 0
+dailyMitigationScore := 0
+
+dailyNarrativeScore := 0
+
+dailyNarrativeBullish := false
+dailyNarrativeBearish := false
+
+h4StructureScore := 0
+h4LiquidityScore := 0
+h4OrderBlockScore := 0
+h4FVGScore := 0
+h4PremiumDiscountScore := 0
+h4MitigationScore := 0
+
+h4NarrativeScore := 0
+
+h4NarrativeBullish := false
+h4NarrativeBearish := false
+
+executionStructureScore := 0
+executionLiquidityScore := 0
+executionOrderBlockScore := 0
+executionFVGScore := 0
+executionPremiumDiscountScore := 0
+executionMitigationScore := 0
+
+executionNarrativeScore := 0
+
+executionNarrativeBullish := false
+executionNarrativeBearish := false
+mtfBullishAligned := false
+mtfBearishAligned := false
+
+alignmentScore := 0
+confidenceScore := 0
+dailyHigh := na
+dailyLow := na
+dailyClose := na
+
+var float h4Open = na
+h4High := na
+h4Low := na
+h4Close := na
+h4Open := na
+
+executionOpen := na
+executionHigh := na
+executionLow := na
+executionClose := na
+//====================================================
+// H4 PRICE FEED
+//====================================================
+
+h4Open  := request.security(syminfo.tickerid, "240", open)
+h4High  := request.security(syminfo.tickerid, "240", high)
+h4Low   := request.security(syminfo.tickerid, "240", low)
+h4Close := request.security(syminfo.tickerid, "240", close)
+//====================================================
+// H4 BOS DETECTION
+//====================================================
+
+h4SwingHigh = ta.highest(h4High, majorLen)
+h4SwingLow  = ta.lowest(h4Low, majorLen)
+
+h4BullishBOS = h4Close > h4SwingHigh[1]
+h4BearishBOS = h4Close < h4SwingLow[1]
+
+marketQualified := false
+
+
+tradeDirection := TradeDirection.None
+
+aggressiveEntry := false
+conservativeEntry := false
+
+hasLiquidityConfirmation := false
+hasStructureConfirmation := false
+hasInstitutionalConfirmation := false
+
+buySignal := false
+sellSignal := false
+
+//====================================================
+// EXECUTION PRICE FEED
+//====================================================
+
+executionOpen  := request.security(syminfo.tickerid, timeframe.period, open)
+executionHigh  := request.security(syminfo.tickerid, timeframe.period, high)
+executionLow   := request.security(syminfo.tickerid, timeframe.period, low)
+executionClose := request.security(syminfo.tickerid, timeframe.period, close)
 
 // Store confirmed pivots
 // Store confirmed Major High
@@ -123,17 +526,61 @@ if not na(majorPH)
         if not na(previousMajorHigh)
             currentHighClass := lastMajorHigh > previousMajorHigh ? SwingClass.HH : SwingClass.LH
 
+        if currentHighClass == SwingClass.LH
+            candidateHigh := lastMajorHigh
+            candidateHighBar := lastMajorHighBar
+        // Promote Candidate Low after bullish continuation
+        if currentHighClass == SwingClass.HH and not na(candidateLow)
+            protectedLow := candidateLow
+            protectedLowBar := candidateLowBar
+            // Remove previous protected low line
+            if not na(protectedLowLine)
+                line.delete(protectedLowLine)
+
+            // Draw new protected low line
+            protectedLowLine := line.new(
+                protectedLowBar,
+                protectedLow,
+                bar_index,
+                protectedLow,
+                extend=extend.right,
+                color=color.aqua,
+                width=2)
+            candidateLow := na
+            candidateLowBar := na
+
         array.push(majorHighPrices, majorPH)
         array.push(majorHighBars, bar_index - majorLen)
-
 //====================================================
 // BULLISH BOS
 //====================================================
+if high[2] < low
+    bullishFVG := true
+    bullishFVGMemory := true
+    bullishFVGTop := low
+    bullishFVGBottom := high[2]
+if not na(protectedHigh)
+    if close > protectedHigh and close[1] <= protectedHigh
 
-if not na(lastMajorHigh)
-    if close > lastMajorHigh and close[1] <= lastMajorHigh
-        bullishBOS := true
-        lastBullishBOS := lastMajorHigh
+        if marketState == MarketState.Bearish
+            bullishCHoCH := true
+            bullishCHoCHMemory := true
+            lastBullishCHoCH := protectedHigh
+        else
+            bullishBOS := true
+            bullishBOSMemory := true
+            lastBullishBOS := protectedHigh
+
+        marketState := MarketState.Bullish
+if bullishBOS or bullishCHoCH
+
+    bullishOBHigh := high[1]
+    bullishOBLow  := low[1]
+    bullishOBBar  := bar_index - 1
+    bullishOBFresh := true
+    bullishOBMemory := true
+    bullishOBMitigated := false
+
 
 // Store confirmed Major Low
 if not na(majorPL)
@@ -147,17 +594,376 @@ if not na(majorPL)
         if not na(previousMajorLow)
             currentLowClass := lastMajorLow > previousMajorLow ? SwingClass.HL : SwingClass.LL
 
+        if currentLowClass == SwingClass.HL
+            candidateLow := lastMajorLow
+            candidateLowBar := lastMajorLowBar
+        // Promote Candidate High after bearish continuation
+        if currentLowClass == SwingClass.LL and not na(candidateHigh)
+            protectedHigh := candidateHigh
+            protectedHighBar := candidateHighBar
+            // Remove previous protected high line
+            if not na(protectedHighLine)
+                line.delete(protectedHighLine)
+
+            // Draw new protected high line
+            protectedHighLine := line.new(
+                protectedHighBar,
+                protectedHigh,
+                bar_index,
+                protectedHigh,
+                extend=extend.right,
+                color=color.orange,
+                width=2)
+            candidateHigh := na
+            candidateHighBar := na
+
         array.push(majorLowPrices, majorPL)
         array.push(majorLowBars, bar_index - majorLen)
+if not na(protectedHigh) and not na(protectedLow)
 
+    equilibrium := (protectedHigh + protectedLow) / 2
+
+    if close > equilibrium
+        inPremium := true
+
+    if close < equilibrium
+        inDiscount := true
 //====================================================
 // BEARISH BOS
 //====================================================
+if low[2] > high
+    bearishFVG := true
+    bearishFVGMemory := true
+    bearishFVGTop := low[2]
+    bearishFVGBottom := high
 
-if not na(lastMajorLow)
-    if close < lastMajorLow and close[1] >= lastMajorLow
+if not na(protectedLow)
+    if low < protectedLow and close > protectedLow
+        bullishSweep := true
+        bullishSweepMemory := true
+        lastBullishSweep := protectedLow    
+if not na(protectedHigh)
+    if high > protectedHigh and close < protectedHigh
+        bearishSweep := true
+        bearishSweepMemory := true
+        lastBearishSweep := protectedHigh
+if close < protectedLow and close[1] >= protectedLow
+    if marketState == MarketState.Bullish
+        bearishCHoCH := true
+        bearishCHoCHMemory := true
+        lastBearishCHoCH := protectedLow
+    else
         bearishBOS := true
-        lastBearishBOS := lastMajorLow
+        bearishBOSMemory := true
+        lastBearishBOS := protectedLow
+
+    marketState := MarketState.Bearish
+    if bearishBOS or bearishCHoCH
+        bearishOBHigh := high[1]
+        bearishOBLow  := low[1]
+        bearishOBBar  := bar_index - 1 
+        bearishOBFresh := true
+        bearishOBMemory := true
+        bearishOBMitigated := false
+
+//====================================================
+// ORDER BLOCK MITIGATION
+//====================================================
+
+if bullishOBFresh
+    if low <= bullishOBHigh and low >= bullishOBLow
+        bullishOBMitigated := true
+        bullishOBFresh := false
+
+if bearishOBFresh
+    if high >= bearishOBLow and high <= bearishOBHigh
+        bearishOBMitigated := true
+        bearishOBFresh := false    
+//====================================================
+// DAILY NARRATIVE SCORING
+//====================================================
+
+// Structure
+if trendState == TrendState.Bullish
+    dailyStructureScore := SCORE_STRUCTURE
+
+if trendState == TrendState.Bearish
+    dailyStructureScore := SCORE_STRUCTURE
+
+// Liquidity
+if bullishSweepMemory or bearishSweepMemory
+    dailyLiquidityScore := SCORE_LIQUIDITY
+
+// Order Block
+if bullishOBMemory or bearishOBMemory
+    dailyOrderBlockScore := SCORE_ORDERBLOCK
+
+// Fair Value Gap
+if bullishFVGMemory or bearishFVGMemory
+    dailyFVGScore := SCORE_FVG
+
+// Premium / Discount
+if inPremium or inDiscount
+    dailyPremiumDiscountScore := SCORE_PREMIUM
+
+// Mitigation
+if bullishOBMitigated or bearishOBMitigated
+    dailyMitigationScore := SCORE_MITIGATION
+dailyNarrativeScore := (
+    dailyStructureScore +
+    dailyLiquidityScore +
+    dailyOrderBlockScore +
+    dailyFVGScore +
+    dailyPremiumDiscountScore +
+    dailyMitigationScore
+)
+
+if dailyNarrativeScore >= 60
+    dailyNarrativeBullish := dailyStructureScore > 0
+    dailyNarrativeBearish := trendState == TrendState.Bearish
+else
+    dailyNarrativeBullish := false
+    dailyNarrativeBearish := false
+
+// DAILY BIAS ENGINE
+dailyBiasBullish := dailyNarrativeBullish
+dailyBiasBearish := dailyNarrativeBearish
+
+//====================================================
+// H4 NARRATIVE V1
+//====================================================
+
+h4StructureScore := (bullishBOSMemory or bearishBOSMemory or bullishCHoCHMemory or bearishCHoCHMemory) ? SCORE_STRUCTURE : 0
+
+h4LiquidityScore := dailyLiquidityScore
+
+h4OrderBlockScore := dailyOrderBlockScore
+
+h4FVGScore := dailyFVGScore
+
+h4PremiumDiscountScore := dailyPremiumDiscountScore
+
+h4MitigationScore := dailyMitigationScore
+
+h4NarrativeScore := (
+    h4StructureScore +
+    h4LiquidityScore +
+    h4OrderBlockScore +
+    h4FVGScore +
+    h4PremiumDiscountScore +
+    h4MitigationScore
+)
+if h4NarrativeScore >= 60
+    h4NarrativeBullish := h4Close > h4Open
+    h4NarrativeBearish := h4Close < h4Open
+else
+    h4NarrativeBullish := false
+    h4NarrativeBearish := false
+
+//====================================================
+// TEMPORARY EXECUTION NARRATIVE
+//====================================================
+
+//==================================================
+// EXECUTION STRUCTURE ENGINE (15M)
+//==================================================
+
+// Bullish execution structure
+bool executionBullishStructure =
+     bullishBOS or
+     bullishCHoCH or
+     trendState == TrendState.Bullish
+
+// Bearish execution structure
+bool executionBearishStructure =
+     bearishBOS or
+     bearishCHoCH or
+     trendState == TrendState.Bearish
+
+// Structure score
+executionStructureScore :=
+     executionBullishStructure or executionBearishStructure
+     ? SCORE_STRUCTURE
+     : 0
+
+executionLiquidityScore := dailyLiquidityScore
+
+executionOrderBlockScore := dailyOrderBlockScore
+
+executionFVGScore := dailyFVGScore
+
+executionPremiumDiscountScore := dailyPremiumDiscountScore
+
+executionMitigationScore := dailyMitigationScore
+
+executionNarrativeScore := (
+    executionStructureScore +
+    executionLiquidityScore +
+    executionOrderBlockScore +
+    executionFVGScore +
+    executionPremiumDiscountScore +
+    executionMitigationScore
+)
+
+if executionNarrativeScore >= 60
+    executionNarrativeBullish := executionClose > executionOpen
+    executionNarrativeBearish := executionClose < executionOpen
+else
+    executionNarrativeBullish := false
+    executionNarrativeBearish := false
+
+//====================================================
+// MTF ALIGNMENT ENGINE
+//====================================================
+
+mtfBullishAligned := dailyNarrativeBullish and h4NarrativeBullish and executionNarrativeBullish
+
+mtfBearishAligned := dailyNarrativeBearish and h4NarrativeBearish and executionNarrativeBearish
+
+alignmentScore := 0
+
+if mtfBullishAligned or mtfBearishAligned
+    alignmentScore := 100
+//====================================================
+// CONFIDENCE MANAGER
+//====================================================
+
+confidenceScore := 0
+
+int structureScore = 0
+int chochScore = 0
+int premiumScore = 0
+int narrativeScoreDebug = 0
+int alignmentScoreDebug = 0
+
+// Structure
+if mtfBullishAligned or mtfBearishAligned
+    structureScore := structureWeight
+    confidenceScore += structureScore
+
+// BOS
+if bullishBOSMemory or bearishBOSMemory
+    bosScore := bosWeight
+    confidenceScore += bosScore
+
+// CHoCH
+if bullishCHoCHMemory or bearishCHoCHMemory
+    chochScore := chochWeight
+    confidenceScore += chochScore
+
+// Liquidity
+if bullishSweepMemory or bearishSweepMemory
+    liquidityScore := liquidityWeight
+    confidenceScore += liquidityScore
+    
+// Order Block
+if bullishOBMemory or bearishOBMemory
+    orderBlockScore := orderBlockWeight
+    confidenceScore += orderBlockScore
+
+// Fair Value Gap
+if bullishFVGMemory or bearishFVGMemory
+    fvgScore := fvgWeight
+    confidenceScore += fvgScore
+
+// Premium / Discount
+if inPremium or inDiscount
+    premiumScore := premiumWeight
+    confidenceScore += premiumScore
+
+// Mitigation
+if bullishOBMitigated or bearishOBMitigated
+    mitigationScore := mitigationWeight
+    confidenceScore += mitigationScore
+
+// Narrative
+if dailyNarrativeScore >= 60
+    narrativeScoreDebug := narrativeWeight
+    confidenceScore += narrativeScoreDebug
+
+// Alignment
+if mtfBullishAligned or mtfBearishAligned
+    alignmentScoreDebug := alignmentWeight
+    confidenceScore += alignmentScoreDebug
+
+//====================================================
+// MARKET QUALIFICATION
+//====================================================
+
+marketQualified := confidenceScore >= aggressiveConfidenceThreshold
+
+marketQualifiedDebug = marketQualified
+//====================================================
+// DIRECTIONAL QUALIFICATION
+//====================================================
+
+if marketQualified
+    if mtfBullishAligned
+        tradeDirection := TradeDirection.Buy
+    else if mtfBearishAligned
+        tradeDirection := TradeDirection.Sell
+    else
+        tradeDirection := TradeDirection.None
+else
+    tradeDirection := TradeDirection.None
+
+//====================================================
+// ENTRY QUALIFICATION
+//====================================================
+
+hasLiquidityConfirmation := false
+hasStructureConfirmation := false
+hasInstitutionalConfirmation := false
+
+if tradeDirection == TradeDirection.Buy
+    hasLiquidityConfirmation := bullishSweepMemory
+    hasStructureConfirmation := bullishBOSMemory or bullishCHoCHMemory
+    hasInstitutionalConfirmation := bullishOBMemory and bullishFVGMemory and inDiscount
+
+if tradeDirection == TradeDirection.Sell
+    hasLiquidityConfirmation := bearishSweepMemory
+    hasStructureConfirmation := bearishBOSMemory or bearishCHoCHMemory
+    hasInstitutionalConfirmation := bearishOBMemory and bearishFVGMemory and inPremium
+
+aggressiveEntry := (
+    hasLiquidityConfirmation and
+    hasStructureConfirmation and
+    hasInstitutionalConfirmation
+)
+
+conservativeEntry := aggressiveEntry and (
+    (tradeDirection == TradeDirection.Buy and bullishOBMitigated) or 
+    (tradeDirection == TradeDirection.Sell and bearishOBMitigated)
+    )
+
+//====================================================
+// SIGNAL LIFECYCLE
+//====================================================
+
+buySignal := false
+sellSignal := false
+
+// BUY SETUP
+
+if aggressiveEntry and tradeDirection == TradeDirection.Buy
+
+    if not buySetupActive
+        buySignal := true
+        buySetupActive := true
+
+else
+    buySetupActive := false
+
+// SELL SETUP
+
+if aggressiveEntry and tradeDirection == TradeDirection.Sell
+
+    if not sellSetupActive
+        sellSignal := true
+        sellSetupActive := true
+
+else
+    sellSetupActive := false
 
 //====================================================
 // DRAWING
@@ -198,6 +1004,114 @@ plotshape(
      offset=-minorLen,
      size=size.tiny,
      color=color.aqua)
+plotshape(
+    buySignal,
+    title="BUY Signal",
+    style=shape.arrowup,
+    location=location.belowbar,
+    color=color.lime,
+    size=size.normal,
+    text="BUY")
+
+plotshape(
+    sellSignal,
+    title="SELL Signal",
+    style=shape.arrowdown,
+    location=location.abovebar,
+    color=color.red,
+    size=size.normal,
+    text="SELL")
+if showDashboard and barstate.islast
+
+    table.cell(dashboard, 0, 0, "SMC PRO AI")
+    table.cell(dashboard, 1, 0, "")
+
+    table.cell(dashboard, 0, 1, "Confidence")
+    table.cell(dashboard, 1, 1, str.tostring(confidenceScore) + "%")
+
+    table.cell(dashboard, 0, 2, "Market")
+    table.cell(dashboard, 1, 2, marketQualified ? "YES" : "NO")
+
+    table.cell(dashboard, 0, 3, "Direction")
+    table.cell(dashboard, 1, 3, tradeDirection == TradeDirection.Buy ? "BUY" : tradeDirection == TradeDirection.Sell ? "SELL" : "NONE")
+    table.cell(dashboard, 0, 4, "Entry")
+    table.cell(dashboard, 1, 4, aggressiveEntry ? "READY" : "WAIT")
+
+    table.cell(dashboard, 0, 5, "Mode")
+    table.cell(dashboard, 1, 5, "AGGRESSIVE")
+
+//====================================================
+// DAILY SCORES
+//====================================================
+
+table.cell(dashboard, 0, 6, "Daily Structure")
+table.cell(dashboard, 1, 6, str.tostring(dailyStructureScore))
+
+table.cell(dashboard, 0, 7, "Daily Liquidity")
+table.cell(dashboard, 1, 7, str.tostring(dailyLiquidityScore))
+
+table.cell(dashboard, 0, 8, "Daily OB")
+table.cell(dashboard, 1, 8, str.tostring(dailyOrderBlockScore))
+
+table.cell(dashboard, 0, 9, "Daily FVG")
+table.cell(dashboard, 1, 9, str.tostring(dailyFVGScore))
+
+table.cell(dashboard, 0, 10, "Daily Premium")
+table.cell(dashboard, 1, 10, str.tostring(dailyPremiumDiscountScore))
+
+table.cell(dashboard, 0, 11, "Daily Mitigation")
+table.cell(dashboard, 1, 11, str.tostring(dailyMitigationScore))
+
+table.cell(dashboard, 0, 12, "Daily Narrative")
+table.cell(dashboard, 1, 12, str.tostring(dailyNarrativeScore))
+//====================================================
+// H4 SCORES
+//====================================================
+
+table.cell(dashboard, 0, 13, "H4 Structure")
+table.cell(dashboard, 1, 13, str.tostring(h4StructureScore))
+
+table.cell(dashboard, 0, 14, "H4 Liquidity")
+table.cell(dashboard, 1, 14, str.tostring(h4LiquidityScore))
+
+table.cell(dashboard, 0, 15, "H4 OB")
+table.cell(dashboard, 1, 15, str.tostring(h4OrderBlockScore))
+
+table.cell(dashboard, 0, 16, "H4 FVG")
+table.cell(dashboard, 1, 16, str.tostring(h4FVGScore))
+
+table.cell(dashboard, 0, 17, "H4 Premium")
+table.cell(dashboard, 1, 17, str.tostring(h4PremiumDiscountScore))
+
+table.cell(dashboard, 0, 18, "H4 Mitigation")
+table.cell(dashboard, 1, 18, str.tostring(h4MitigationScore))
+
+table.cell(dashboard, 0, 19, "H4 Narrative")
+table.cell(dashboard, 1, 19, str.tostring(h4NarrativeScore))
+//====================================================
+// EXECUTION SCORES
+//====================================================
+
+table.cell(dashboard, 0, 20, "Exec Structure")
+table.cell(dashboard, 1, 20, str.tostring(executionStructureScore))
+
+table.cell(dashboard, 0, 21, "Exec Liquidity")
+table.cell(dashboard, 1, 21, str.tostring(executionLiquidityScore))
+
+table.cell(dashboard, 0, 22, "Exec OB")
+table.cell(dashboard, 1, 22, str.tostring(executionOrderBlockScore))
+
+table.cell(dashboard, 0, 23, "Exec FVG")
+table.cell(dashboard, 1, 23, str.tostring(executionFVGScore))
+
+table.cell(dashboard, 0, 24, "Exec Premium")
+table.cell(dashboard, 1, 24, str.tostring(executionPremiumDiscountScore))
+
+table.cell(dashboard, 0, 25, "Exec Mitigation")
+table.cell(dashboard, 1, 25, str.tostring(executionMitigationScore))
+
+table.cell(dashboard, 0, 26, "Exec Narrative")
+table.cell(dashboard, 1, 26, str.tostring(executionNarrativeScore))
 
 //====================================================
 // MARKET STRUCTURE LABELS
@@ -235,7 +1149,14 @@ if bullishBOS
          style=label.style_label_down,
          color=color.green,
          textcolor=color.white)
-
+if bullishCHoCH
+    label.new(
+         bar_index,
+         high,
+         "CHoCH",
+         style=label.style_label_down,
+         color=color.blue,
+         textcolor=color.white)
 if bearishBOS
     label.new(
          bar_index,
@@ -245,6 +1166,109 @@ if bearishBOS
          color=color.red,
          textcolor=color.white)
 
+if bearishCHoCH
+    label.new(
+         bar_index,
+         low,
+         "CHoCH",
+         style=label.style_label_up,
+         color=color.purple,
+         textcolor=color.white)
+if bullishSweep
+    label.new(
+        bar_index,
+        low,
+        "SWEEP",
+        style=label.style_label_up,
+        color=color.lime,
+        textcolor=color.black)
+
+if bearishSweep
+    label.new(
+        bar_index,
+        high,
+        "SWEEP",
+        style=label.style_label_down,
+        color=color.orange,
+        textcolor=color.black)
+plot(
+    equilibrium,
+    title="Equilibrium",
+    color=color.yellow,
+    linewidth=2)
+if bullishFVG
+    box.new(
+        bar_index - 2,
+        bullishFVGTop,
+        bar_index,
+        bullishFVGBottom,
+        bgcolor=color.new(color.teal, 85),
+        border_color=color.teal)
+
+if bearishFVG
+    box.new(
+        bar_index - 2,
+        bearishFVGTop,
+        bar_index,
+        bearishFVGBottom,
+        bgcolor=color.new(color.maroon, 85),
+        border_color=color.maroon)
+if not na(bullishOBHigh)
+    box.new(
+        bullishOBBar,
+        bullishOBHigh,
+        bar_index,
+        bullishOBLow,
+        bgcolor=color.new(color.green, 85),
+        border_color=color.green)
+if bullishOBMitigated
+    label.new(
+        bar_index,
+        bullishOBLow,
+        "Mitigated",
+        style=label.style_label_up,
+        color=color.gray,
+        textcolor=color.white)
+
+if bearishOBMitigated
+    label.new(
+        bar_index,
+        bearishOBHigh,
+        "Mitigated",
+        style=label.style_label_down,
+        color=color.gray,
+        textcolor=color.white)
+
+if not na(bearishOBHigh)
+    box.new(
+        bearishOBBar,
+        bearishOBHigh,
+        bar_index,
+        bearishOBLow,
+        bgcolor=color.new(color.red, 85),
+        border_color=color.red)
+bgcolor(
+    inPremium ?
+    color.new(color.red, 92) :
+    inDiscount ?
+    color.new(color.green, 92) :
+    na)
+plot(candidateHigh, "Candidate High", color=color.red, linewidth=2)
+plot(candidateLow, "Candidate Low", color=color.lime, linewidth=2)
+
+plot(protectedHigh, "Protected High", color=color.orange, linewidth=3)
+plot(protectedLow, "Protected Low", color=color.aqua, linewidth=3)
+plotchar(
+     marketState == MarketState.Bullish,
+     "Bullish State",
+     "B",
+     location.top)
+
+plotchar(
+     marketState == MarketState.Bearish,
+     "Bearish State",
+     "S",
+     location.bottom)
 //====================================================
 // DEBUG
 //====================================================
@@ -258,12 +1282,94 @@ if debugMode and barstate.islast
     label.new(
          bar_index,
          high,
-         "SMC PRO AI " + VERSION +
-         "\nTrend: " + trendText +
-         "\nLast High: " + str.tostring(lastMajorHigh) +
-         "\nPrev High: " + str.tostring(previousMajorHigh) +
-         "\nLast Low: " + str.tostring(lastMajorLow) +
-         "\nPrev Low: " + str.tostring(previousMajorLow),
+         text = "SMC PRO AI " + VERSION +
+         
+"\nConfidence: " + str.tostring(confidenceScore) + "%" +
+
+"\nMarket: " +
+(marketQualified ? "YES" : "NO") +
+
+"\nDirection: " +
+(tradeDirection == TradeDirection.Buy ? "BUY" :
+tradeDirection == TradeDirection.Sell ? "SELL" : "NONE") +
+
+"\nLiquidity: " +
+(hasLiquidityConfirmation ? "YES" : "NO") +
+
+"\nStructure: " +
+(hasStructureConfirmation ? "YES" : "NO") +
+
+"\nInstitutional: " +
+"\nHas Liquidity Confirmation: " +
+(hasLiquidityConfirmation ? "YES" : "NO") +
+
+"\nHas Structure Confirmation: " +
+(hasStructureConfirmation ? "YES" : "NO") +
+
+"\nHas Institutional Confirmation: " +
+(hasInstitutionalConfirmation ? "YES" : "NO") +
+"\nIn Premium: " + (inPremium ? "YES" : "NO") +
+"\nIn Discount: " + (inDiscount ? "YES" : "NO") +
+"\nTrade Direction: " +
+"\nMTF Bullish: " + (mtfBullishAligned ? "YES" : "NO") +
+"\nMTF Bearish: " + (mtfBearishAligned ? "YES" : "NO") +
+"\nDaily Bullish: " + (dailyBiasBullish ? "YES" : "NO") +
+"\nDaily Bearish: " + (dailyBiasBearish ? "YES" : "NO") +
+(tradeDirection == TradeDirection.Buy ? "BUY" :
+ tradeDirection == TradeDirection.Sell ? "SELL" : "NONE") +
+"\nBearish FVG: " + (bearishFVG ? "YES" : "NO") +
+"\nBullish FVG: " + (bullishFVG ? "YES" : "NO") +
+"\nInstitution Logic: " +
+((bearishOBMemory and bearishFVGMemory and inPremium) ? "YES" : "NO") +
+"\nAggressive Entry: " +
+(aggressiveEntry ? "YES" : "NO") +
+
+"\nBuy Signal: " +
+(buySignal ? "YES" : "NO") +
+
+"\nSell Signal: " +
+(sellSignal ? "YES" : "NO") +
+
+"\n----------------" +
+
+"\nStructure Score: " + str.tostring(dailyStructureScore) +
+
+"\nBOS Score: " + str.tostring(bosScore) +
+
+"\nCHoCH Score: " + str.tostring(chochScore) +
+
+"\nDaily Liquidity Score: " + str.tostring(dailyLiquidityScore) +
+
+"\nOrder Block Score: " + str.tostring(orderBlockScore) +
+"\nBullish OB Memory: " + (bullishOBMemory ? "YES" : "NO") +
+"\nBearish OB Memory: " + (bearishOBMemory ? "YES" : "NO") +
+"\nBullish FVG Memory: " + (bullishFVGMemory ? "YES" : "NO") +
+"\nBearish FVG Memory: " + (bearishFVGMemory ? "YES" : "NO") +
+"\nBullish OB Mitigated: " + (bullishOBMitigated ? "YES" : "NO") +
+"\nBearish OB Mitigated: " + (bearishOBMitigated ? "YES" : "NO") +
+
+"\nDaily Order Block Score: " + str.tostring(dailyOrderBlockScore) +
+"\nDaily FVG Score: " + str.tostring(dailyFVGScore) +
+"\nDaily Premium Score: " + str.tostring(dailyPremiumDiscountScore) +
+"\nDaily Mitigation Score: " + str.tostring(dailyMitigationScore) +
+"\nDaily Narrative Score: " + str.tostring(dailyNarrativeScore) +
+"\nH4 Narrative Score: " + str.tostring(h4NarrativeScore) +
+"\nH4 Bullish: " + (h4NarrativeBullish ? "YES" : "NO") +
+"\nH4 Bearish: " + (h4NarrativeBearish ? "YES" : "NO") +
+"\nExecution Narrative Score: " + str.tostring(executionNarrativeScore) +
+"\nExecution Bullish: " + (executionNarrativeBullish ? "YES" : "NO") +
+"\nExecution Bearish: " + (executionNarrativeBearish ? "YES" : "NO") +
+"\nNarrative Score: " + str.tostring(narrativeScoreDebug) +
+
+"\nAlignment Score: " + str.tostring(alignmentScoreDebug),
+
          style=label.style_label_left,
          color=color.black,
          textcolor=color.white)
+//====================================================
+// ALERT CONDITIONS
+//====================================================
+
+alertcondition(enableAlerts and buySignal, title="SMC PRO AI BUY", message="SMC PRO AI has generated a BUY signal.")
+
+alertcondition(enableAlerts and sellSignal, title="SMC PRO AI SELL", message="SMC PRO AI has generated a SELL signal.")
